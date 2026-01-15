@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaCompress - 專業圖片壓縮工具 | 免費、快速、隱私安全</title>
+    <meta name="description" content="NovaCompress 是一款強大的純前端圖片壓縮工具。支援 JPG, PNG, WebP 格式，所有處理均在瀏覽器完成，圖片不需上傳伺服器，完全保護隱私並提供極速壓縮體驗。">
+    <meta name="keywords" content="圖片壓縮, image compressor, compress jpeg, optimize png, webp optimizer, browser-based compression, 免費轉檔, 圖片優化">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-WCKH84XV5L"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-WCKH84XV5L');
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              tech: {
+                900: '#0a0a0c',
+                800: '#121217',
+                700: '#1c1c24',
+                accent: '#3b82f6'
+              }
+            },
+            animation: {
+              'fade-in': 'fade-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'slide-up': 'slide-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'scale-in': 'scale-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+KR:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap');
+      
+      body {
+        font-family: 'Inter', 'Noto Sans TC', 'Noto Sans JP', 'Noto Sans KR', sans-serif;
+        background-color: #0a0a0c;
+        color: #e2e8f0;
+        margin: 0;
+        overflow-x: hidden;
+      }
+      
+      .glass {
+        background: rgba(28, 28, 36, 0.7);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #0a0a0c; }
+      ::-webkit-scrollbar-thumb { background: #1c1c24; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+      @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes slide-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes scale-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+      
+      .animate-fade-in { animation: fade-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      .animate-slide-up { animation: slide-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      .animate-scale-in { animation: scale-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      
+      select { appearance: none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="module">
+        import React, { useState, useEffect, useRef, useCallback } from 'https://esm.sh/react@19.0.0';
+        import ReactDOM from 'https://esm.sh/react-dom@19.0.0/client';
+        import htm from 'https://esm.sh/htm';
+
+        const html = htm.bind(React.createElement);
+
+        // --- Constants & Translations ---
+        const TRANSLATIONS = {
+          en: {
+            titlePart1: 'NovaCompress',
+            titlePart2: '- Pro Image Optimizer',
+            dropzoneTitle: 'Select Images',
+            dropzoneText: 'Drag & Drop or Click (JPEG, PNG, WebP)',
+            limitWarning: 'Batch limit: 10 images at once.',
+            compressBtn: 'Start Compression',
+            downloadAllBtn: 'Download All',
+            clearBtn: 'Clear All',
+            statusIdle: 'Waiting',
+            statusProcessing: 'Compressing...',
+            statusDone: 'Optimized',
+            seoDescription: 'NovaCompress is a high-performance, private image compression tool. Optimize JPEG, PNG, and WebP files entirely in your browser. No server uploads, ensuring 100% data privacy and lightning-fast processing.',
+            qualityLabel: 'Quality',
+            originalSizeLabel: 'Original',
+            compressedSizeLabel: 'Optimized',
+            ratioLabel: 'Saved',
+            feature1Title: 'Zero-Upload Privacy',
+            feature1Desc: 'All processing happens in your browser. Your images never leave your computer, ensuring absolute security.',
+            feature2Title: 'Canvas Core Tech',
+            feature2Desc: 'Powered by high-performance Canvas API to ensure pixel-perfect compression without compromising visual integrity.',
+            feature3Title: 'Bulk Optimization',
+            feature3Desc: 'Efficiently process multiple images in parallel. Save time with our streamlined batch workflow.',
+            copyright: '© 2025 NovaCompress - Professional Image Optimization Service',
+            formatLabel: 'Format',
+            formatAuto: 'Keep Original Format'
+          },
+          zh: {
+            titlePart1: '極速圖片壓縮',
+            titlePart2: '- 免費、安全、即時',
+            dropzoneTitle: '選擇圖片',
+            dropzoneText: '拖曳至此或點擊選取 (支援 JPEG, PNG, WebP)',
+            limitWarning: '單次限制：最多同時處理 10 張圖片。',
+            compressBtn: '開始壓縮',
+            downloadAllBtn: '全部下載',
+            clearBtn: '清除列表',
+            statusIdle: '待處理',
+            statusProcessing: '壓縮中...',
+            statusDone: '壓縮完成',
+            seoDescription: 'NovaCompress 是一款領先的純前端圖片壓縮工具。支援 JPG, PNG, WebP，採用瀏覽器原生技術即時處理，無需上傳伺服器，完美兼顧隱私安全與極致效能。',
+            qualityLabel: '品質',
+            originalSizeLabel: '原始大小',
+            compressedSizeLabel: '壓縮後',
+            ratioLabel: '壓縮率',
+            feature1Title: '極速且本地化',
+            feature1Desc: '所有處理都在您的裝置上完成。絕不將檔案上傳至伺服器，確保隱私安全。',
+            feature2Title: '批量處理',
+            feature2Desc: '同時壓縮多達 10 張圖片。優化工作流程，無需逐一等待處理。',
+            feature3Title: 'Canvas 核心技術',
+            feature3Desc: '使用 Canvas API 進行高品質壓縮，精準控制檔案大小與畫質，滿足專業需求。',
+            copyright: '© 2025 NovaCompress 幻速壓縮 - 專業圖片處理工具',
+            formatLabel: '輸出格式',
+            formatAuto: '保持原格式'
+          }
+        };
+
+        // --- Helper Services ---
+        const formatBytes = (bytes, decimals = 1) => {
+          if (bytes === 0) return '0 Bytes';
+          const k = 1024;
+          const dm = decimals < 0 ? 0 : decimals;
+          const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+          return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        };
+
+        const compressImageAction = async (imgFile, targetFormat, quality) => {
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              
+              if (!ctx) {
+                resolve({ ...imgFile, status: 'error' });
+                return;
+              }
+
+              const finalMime = targetFormat === 'original' ? imgFile.file.type : targetFormat;
+              
+              if (finalMime === 'image/jpeg') {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+              }
+
+              ctx.drawImage(img, 0, 0);
+              
+              canvas.toBlob((blob) => {
+                if (blob) {
+                  const url = URL.createObjectURL(blob);
+                  const ratio = (1 - blob.size / imgFile.originalSize) * 100;
+                  resolve({
+                    ...imgFile,
+                    status: 'done',
+                    resultUrl: url,
+                    resultType: finalMime,
+                    compressedSize: blob.size,
+                    compressionRatio: Math.max(0, ratio)
+                  });
+                } else {
+                  resolve({ ...imgFile, status: 'error' });
+                }
+              }, finalMime, quality);
+            };
+            img.onerror = () => resolve({ ...imgFile, status: 'error' });
+            img.src = imgFile.previewUrl;
+          });
+        };
+
+        // --- Main App Component ---
+        const App = () => {
+          const [lang, setLang] = useState('en');
+          const [images, setImages] = useState([]);
+          const [targetFormat, setTargetFormat] = useState('original');
+          const [quality, setQuality] = useState(0.8);
+          const fileInputRef = useRef(null);
+
+          useEffect(() => {
+            const browserLang = navigator.language.split('-')[0];
+            if (TRANSLATIONS[browserLang]) {
+              setLang(browserLang);
+            }
+          }, []);
+
+          const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+
+          const handleFiles = useCallback((files) => {
+            if (!files) return;
+            const currentCount = images.length;
+            const remaining = 10 - currentCount;
+            if (remaining <= 0) return;
+
+            const newFiles = Array.from(files)
+              .slice(0, remaining)
+              .filter(file => file.type.startsWith('image/'))
+              .map(file => ({
+                id: Math.random().toString(36).substr(2, 9),
+                file,
+                previewUrl: URL.createObjectURL(file),
+                status: 'idle',
+                originalSize: file.size
+              }));
+
+            setImages(prev => [...prev, ...newFiles]);
+          }, [images]);
+
+          const onFileChange = (e) => {
+            handleFiles(e.target.files);
+            if (e.target) e.target.value = '';
+          };
+
+          const clearImages = () => {
+            images.forEach(img => {
+              URL.revokeObjectURL(img.previewUrl);
+              if (img.resultUrl) URL.revokeObjectURL(img.resultUrl);
+            });
+            setImages([]);
+          };
+
+          const handleCompress = async () => {
+            setImages(prev => prev.map(img => img.status === 'done' ? img : { ...img, status: 'processing' }));
+            const results = await Promise.all(images.map(img => 
+              img.status === 'done' ? Promise.resolve(img) : compressImageAction(img, targetFormat, quality)
+            ));
+            setImages(results);
+          };
+
+          const downloadAll = () => {
+            images.forEach((img) => {
+              if (img.resultUrl) {
+                const link = document.createElement('a');
+                link.href = img.resultUrl;
+                const ext = img.resultType?.split('/')[1] || 'jpg';
+                link.download = `${img.file.name.replace(/\.[^/.]+$/, "")}_optimized.${ext}`;
+                link.click();
+              }
+            });
+          };
+
+          return html`
+            <div class="min-h-screen flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 bg-tech-900 relative">
+              
+              <!-- Language Switcher -->
+              <div class="absolute top-6 right-6 sm:right-12 z-50 animate-fade-in">
+                <div class="flex items-center space-x-2 bg-tech-800/80 glass px-4 py-2 rounded-xl border border-white/5 shadow-xl">
+                  <svg class="w-4 h-4 text-tech-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                  </svg>
+                  <div class="relative">
+                    <select 
+                      value=${lang} 
+                      onChange=${(e) => setLang(e.target.value)}
+                      class="bg-transparent text-white text-sm font-semibold focus:outline-none cursor-pointer pr-6"
+                    >
+                      <option value="en" class="bg-tech-900">English</option>
+                      <option value="zh" class="bg-tech-900">繁體中文</option>
+                    </select>
+                    <svg class="w-3 h-3 text-gray-500 pointer-events-none absolute right-0 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Header -->
+              <header class="w-full max-w-4xl text-center mb-16 animate-fade-in mt-16 sm:mt-10">
+                <h1 class="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-white mb-6 leading-tight">
+                  <span class="bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent block sm:inline">
+                    ${t.titlePart1}
+                  </span>
+                  <span class="block text-2xl sm:text-4xl md:text-5xl opacity-90 font-bold mt-2 sm:mt-0">
+                    ${t.titlePart2}
+                  </span>
+                </h1>
+              </header>
+
+              <main class="w-full max-w-4xl space-y-8">
+                <!-- Dropzone -->
+                <div onClick=${() => fileInputRef.current?.click()} class="relative group cursor-pointer animate-slide-up">
+                  <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                  <div class="relative glass rounded-3xl p-12 sm:p-20 text-center border-2 border-dashed border-tech-700 group-hover:border-tech-accent transition-all duration-300">
+                    <input type="file" ref=${fileInputRef} onChange=${onFileChange} accept="image/jpeg,image/png,image/webp" multiple class="hidden" />
+                    <div class="mb-6 flex justify-center">
+                      <div class="p-5 bg-tech-accent/10 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-14 h-14 text-tech-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                      </div>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-3">${t.dropzoneTitle}</h2>
+                    <p class="text-gray-500 text-lg">${t.dropzoneText}</p>
+                    ${images.length >= 10 ? html`<p class="mt-4 text-orange-400 text-sm font-bold uppercase tracking-wider animate-pulse">${t.limitWarning}</p>` : ''}
+                  </div>
+                </div>
+
+                <!-- Controls -->
+                ${images.length > 0 ? html`
+                  <div class="glass rounded-2xl p-6 flex flex-wrap gap-8 items-center justify-between border border-tech-700 animate-fade-in shadow-2xl">
+                    <div class="flex flex-wrap items-center gap-8">
+                      <div class="space-y-2">
+                        <label class="text-[10px] text-gray-400 uppercase tracking-widest font-black block">${t.formatLabel}</label>
+                        <div class="flex bg-tech-800 rounded-xl p-1 border border-white/5">
+                          <button onClick=${() => setTargetFormat('original')} class="px-5 py-2 rounded-lg text-sm font-bold transition-all ${targetFormat === 'original' ? 'bg-tech-700 text-white shadow-lg ring-1 ring-white/10' : 'text-gray-500 hover:text-gray-300'}">
+                            ${t.formatAuto}
+                          </button>
+                          <button onClick=${() => setTargetFormat('image/jpeg')} class="px-5 py-2 rounded-lg text-sm font-bold transition-all ${targetFormat === 'image/jpeg' ? 'bg-tech-700 text-white shadow-lg ring-1 ring-white/10' : 'text-gray-500 hover:text-gray-300'}">
+                            JPEG
+                          </button>
+                        </div>
+                      </div>
+                      <div class="space-y-2">
+                        <label class="text-[10px] text-gray-400 uppercase tracking-widest font-black block">${t.qualityLabel}: ${Math.round(quality * 100)}%</label>
+                        <input type="range" min="0.1" max="1" step="0.05" value=${quality} onChange=${(e) => setQuality(parseFloat(e.target.value))} class="w-40 sm:w-48 h-1.5 bg-tech-800 rounded-lg appearance-none cursor-pointer accent-tech-accent border border-white/5" />
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                      <button onClick=${clearImages} class="px-4 py-2 text-sm font-bold text-gray-500 hover:text-white transition-colors">${t.clearBtn}</button>
+                      <button onClick=${handleCompress} disabled=${images.every(img => img.status === 'done')} class="bg-tech-accent hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-black py-3 px-10 rounded-2xl shadow-xl shadow-blue-500/20 transition-all transform active:scale-95">
+                        ${t.compressBtn}
+                      </button>
+                    </div>
+                  </div>
+                ` : ''}
+
+                <!-- List -->
+                <div class="grid grid-cols-1 gap-4">
+                  ${images.map(img => html`
+                    <div key=${img.id} class="glass border border-tech-700/50 rounded-2xl p-4 flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-5 animate-scale-in hover:border-tech-accent/40 transition-colors">
+                      <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-tech-800 flex-shrink-0 border border-white/10 shadow-lg">
+                        <img src=${img.previewUrl} alt="Preview" class="w-full h-full object-cover" />
+                      </div>
+                      
+                      <div class="flex-grow min-w-0 text-center sm:text-left">
+                        <h3 class="text-white font-bold truncate text-base mb-1">${img.file.name}</h3>
+                        <div class="flex flex-wrap justify-center sm:justify-start items-center gap-3">
+                          <span class="text-gray-500 text-[10px] uppercase font-mono tracking-wider bg-white/5 px-2 py-0.5 rounded">
+                            ${t.originalSizeLabel}: ${formatBytes(img.originalSize)}
+                          </span>
+                          ${img.compressedSize ? html`
+                            <span class="text-tech-accent text-[10px] uppercase font-mono tracking-wider bg-tech-accent/10 px-2 py-0.5 rounded border border-tech-accent/20">
+                              ${t.compressedSizeLabel}: ${formatBytes(img.compressedSize)}
+                            </span>
+                          ` : ''}
+                          ${img.compressionRatio !== undefined && img.compressionRatio > 0 ? html`
+                            <span class="text-green-400 text-[10px] uppercase font-black tracking-wider bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">
+                              -${img.compressionRatio.toFixed(1)}% ${t.ratioLabel}
+                            </span>
+                          ` : ''}
+                        </div>
+                      </div>
+
+                      <div class="flex items-center space-x-4">
+                        <span class="text-[10px] sm:text-xs px-3 py-1 rounded-full font-black uppercase tracking-widest border ${
+                          img.status === 'idle' ? 'bg-tech-800 text-gray-500 border-white/5' :
+                          img.status === 'processing' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                          img.status === 'done' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                          'bg-red-500/10 text-red-400 border-red-500/20'
+                        }">
+                          ${img.status === 'idle' ? t.statusIdle : img.status === 'processing' ? t.statusProcessing : img.status === 'done' ? t.statusDone : 'Error'}
+                        </span>
+                        
+                        ${img.resultUrl ? html`
+                          <a href=${img.resultUrl} download="${img.file.name.replace(/\.[^/.]+$/, "")}_opt.${img.resultType?.split('/')[1] || 'jpg'}" class="p-3 bg-tech-800 hover:bg-tech-accent rounded-xl text-white transition-all transform hover:scale-110 active:scale-90 border border-white/5 shadow-xl">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                          </a>
+                        ` : ''}
+                      </div>
+                    </div>
+                  `)}
+                </div>
+
+                <!-- Batch Download -->
+                ${images.some(img => img.status === 'done') ? html`
+                  <div class="flex justify-center mt-12 animate-fade-in">
+                    <button onClick=${downloadAll} class="group flex items-center space-x-4 bg-white text-tech-900 hover:bg-gray-100 font-black py-5 px-16 rounded-3xl transition-all shadow-2xl shadow-white/5 transform hover:-translate-y-1 active:translate-y-0">
+                      <span class="text-xl">${t.downloadAllBtn}</span>
+                      <svg class="w-7 h-7 transform group-hover:translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      </svg>
+                    </button>
+                  </div>
+                ` : ''}
+              </main>
+
+              <!-- Footer Features -->
+              <footer class="w-full max-w-5xl mt-32 border-t border-tech-700/50 pt-20 pb-32">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-16 text-left mb-24 px-4">
+                  <div class="relative">
+                    <div class="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 mb-8 border border-blue-500/20 shadow-lg">
+                       <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                    </div>
+                    <h4 class="text-white font-black text-xl mb-4">${t.feature1Title}</h4>
+                    <p class="text-gray-500 text-sm leading-relaxed font-medium">${t.feature1Desc}</p>
+                  </div>
+                  <div class="relative">
+                    <div class="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 mb-8 border border-indigo-500/20 shadow-lg">
+                       <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
+                    </div>
+                    <h4 class="text-white font-black text-xl mb-4">${t.feature2Title}</h4>
+                    <p class="text-gray-500 text-sm leading-relaxed font-medium">${t.feature2Desc}</p>
+                  </div>
+                  <div class="relative">
+                    <div class="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-400 mb-8 border border-purple-500/20 shadow-lg">
+                       <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </div>
+                    <h4 class="text-white font-black text-xl mb-4">${t.feature3Title}</h4>
+                    <p class="text-gray-500 text-sm leading-relaxed font-medium">${t.feature3Desc}</p>
+                  </div>
+                </div>
+                
+                <div class="text-center space-y-6">
+                  <p class="text-gray-400 text-sm font-black tracking-widest uppercase">${t.copyright}</p>
+                  <div class="max-w-2xl mx-auto">
+                    <p class="text-gray-700 text-xs italic font-medium px-8 leading-loose">${t.seoDescription}</p>
+                  </div>
+                </div>
+              </footer>
+            </div>
+          `;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>
